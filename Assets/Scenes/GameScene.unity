@@ -1098,6 +1098,7 @@ GameObject:
   - component: {fileID: 919132148255302107}
   - component: {fileID: 919132148255302109}
   - component: {fileID: 919132148255302108}
+  - component: {fileID: 919132148255302110}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1164,14 +1165,31 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 919132148255302105}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5565e2ae6124ccd4db601408e8a39394, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jumpForce: 4
+  jumpForce: 6
   gravity: 12
   speed: 7
+--- !u!114 &919132148255302110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132148255302105}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4727457614c5cfa47a5159caa26ebfd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  jumpForce: 8
+  gravity: 14
+  speed: 7
+  detectSwipeAfterRelease: 0
+  SWIPE_THRESHOLD: 250
 --- !u!1 &919132149479934849
 GameObject:
   m_ObjectHideFlags: 0

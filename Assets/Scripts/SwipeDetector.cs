@@ -1,144 +1,210 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Net.Http.Headers;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SwipeDetector : MonoBehaviour
 {
-    //Character Movement
+    //Movement
+    private const float LANE_LENGTH = 2f;
+    private const float TURN = 0.35f;
+
+    private Animator animator;
     private CharacterController characterController;
-    public float jumpForce = 4.0f;
+    public float jumpForce = 8.0f;
     public float gravity = 12.0f;
     private float verticalVelocity;
     public float speed = 7.0f;
     private int desiredLane = 1;
 
+    /// <summary>
+    /// ////////
+    /// </summary>
+    private PlayerMove playerMove;
+
+    private Vector2 fingerDownPos;
+    private Vector2 fingerUpPos;
+    private bool swipeUp = false;
+    private bool swipeDown = false;
 
 
-    private Vector2 pressedPos;
-    private Vector2 releasePos;
+    public bool detectSwipeAfterRelease = false;
 
-    public bool swipeDetectAfterRelease  = false;
-
-    public float swipeThreshold = 20f;
-
-    public float swipe = 1f;
-
+    public float SWIPE_THRESHOLD = 20f;
 
     private void Start()
     {
+        playerMove = GetComponent<PlayerMove>();
         characterController = GetComponent<CharacterController>();
+        animator = GetComponent<Animator>();
     }
 
-
-    private void Update()
+    // Update is called once per frame
+    void Update()
     {
-        foreach(Touch touch in Input.touches)
+        swipeDown = false;
+        swipeUp = false;
+
+        foreach (Touch touch in Input.touches)
         {
-            if(touch.phase == TouchPhase.Began)
+            if (touch.phase == TouchPhase.Began)
             {
-                pressedPos = touch.position;
-                releasePos = touch.position;
+                fingerUpPos = touch.position;
+                fingerDownPos = touch.position;
             }
 
-            if(touch.phase == TouchPhase.Moved) 
-            { 
-                if(!swipeDetectAfterRelease)
+            //Detects Swipe while finger is still moving on screen
+            if (touch.phase == TouchPhase.Moved)
+            {
+                if (!detectSwipeAfterRelease)
                 {
-                    releasePos = touch.position;
+                    fingerDownPos = touch.position;
                     DetectSwipe();
                 }
             }
 
-            if(touch.phase == TouchPhase.Ended)
+            //Detects swipe after finger is released from screen
+            if (touch.phase == TouchPhase.Ended)
             {
-                releasePos = touch.position;
+                fingerDownPos = touch.position;
                 DetectSwipe();
-            } 
+            }
+        }
+
+        //Changes
+        //Our future location
+        Vector3 targetPosition = transform.position.z * Vector3.forward;
+
+        if (desiredLane == 0)
+        {
+            targetPosition += Vector3.left * LANE_LENGTH;
+        }
+        else if (desiredLane == 2)
+        {
+            //animator.SetBool("isRight", true);
+            targetPosition += Vector3.right * LANE_LENGTH;
+        }
+
+        //Move Delta
+        Vector3 moveVector = Vector3.zero;
+        moveVector.x = (targetPosition - transform.position).normalized.x * speed;
+
+        //Y axis
+
+        bool fastDown = false;
+        
+        if (IsGrounded())
+        {
+            verticalVelocity = -0.1f;
+            if (swipeUp)
+            {
+                verticalVelocity = jumpForce;
+            }
+            else if (swipeDown)
+            {
+                animator.SetTrigger("roll");
+            }
 
         }
+
+        else
+        {
+            verticalVelocity -= (gravity * Time.deltaTime);
+            if (swipeDown)
+            {
+                verticalVelocity = -jumpForce;
+                fastDown = true;
+            }
+        }
+
+        if (fastDown)
+        {
+            animator.SetTrigger("roll");
+        }
+
+
+        moveVector.y = verticalVelocity;
+        moveVector.z = speed;
+
+
+
+        //Move Char
+        characterController.Move(moveVector * Time.deltaTime);
+
+        Vector3 direction = characterController.velocity;
+        direction.y = 0;
+        transform.forward = Vector3.Lerp(transform.forward, direction, TURN);
+
     }
 
     void DetectSwipe()
     {
-        if(VerticalValue() > swipeThreshold && VerticalValue() > HorizontalValue())
-        {
-            Debug.Log("vertical swipe detected");
-            if (releasePos.y - pressedPos.y > 0)
-            {
-                OnSwipeUp();
-            }
-            else if (pressedPos.y - releasePos.y > 0)
-            {
-                OnSwipeDown();
-            }
-        }
 
-        else if(HorizontalValue() > swipeThreshold && HorizontalValue() > VerticalValue())
+        if (VerticalMoveValue() > SWIPE_THRESHOLD && VerticalMoveValue() > HorizontalMoveValue())
         {
-            Debug.Log("horizontal swipe detected");
-            if(releasePos.x - pressedPos.x > 0)
+            //Debug.Log("Vertical Swipe Detected!");
+            if (fingerDownPos.y - fingerUpPos.y > 0)
             {
-                OnSwipeRight();
+                swipeUp = true;
             }
-            else if(releasePos.x - pressedPos.x < 0)
+            else if (fingerDownPos.y - fingerUpPos.y < 0)
             {
-                OnSwipeLeft();
+                swipeDown = true;
             }
+            fingerUpPos = fingerDownPos;
+
+        }
+        else if (HorizontalMoveValue() > SWIPE_THRESHOLD && HorizontalMoveValue() > VerticalMoveValue())
+        {
+            //Debug.Log("Horizontal Swipe Detected!");
+            if (fingerDownPos.x - fingerUpPos.x > 0)
+            {
+                MoveLane(true);
+            }
+            else if (fingerDownPos.x - fingerUpPos.x < 0)
+            {
+                MoveLane(false);
+            }
+            fingerUpPos = fingerDownPos;
+
         }
         else
         {
-            Debug.Log("No Swipe detected");
+            //Debug.Log("No Swipe Detected!");
         }
     }
 
-    float VerticalValue()
+    float VerticalMoveValue()
     {
-        return Mathf.Abs(releasePos.y - pressedPos.y);
+        return Mathf.Abs(fingerDownPos.y - fingerUpPos.y);
     }
-    float HorizontalValue()
+
+    float HorizontalMoveValue()
     {
-        return Mathf.Abs(releasePos.x - pressedPos.x);
+        return Mathf.Abs(fingerDownPos.x - fingerUpPos.x);
     }
 
     void OnSwipeUp()
     {
-        Debug.Log("Up");
+        //Do something when swiped up
     }
 
     void OnSwipeDown()
     {
-        Debug.Log("Down");
+        //Do something when swiped down
     }
 
-    void OnSwipeLeft()
+    private void MoveLane(bool goingRight)
     {
-        //Left
-        desiredLane--;
-        if(desiredLane == -1)
-        {
-            desiredLane = 0;
-        }
-
-        if(desiredLane == 0)
-        {
-
-        }
-        //Debug.Log("Left");
-        //transform.Translate(Vector3.left * swipe * Time.deltaTime, Space.World);
+        desiredLane += (goingRight) ? 1 : -1;
+        desiredLane = Mathf.Clamp(desiredLane, 0, 2);
     }
 
-    void OnSwipeRight()
+    private bool IsGrounded()
     {
-        //right
-        Debug.Log("Right");
-        if(desiredLane == 3) 
-        {
-            desiredLane = 2;
-        }
+        Ray groundRay = new Ray(new Vector3(characterController.bounds.center.x, (characterController.bounds.center.y - characterController.bounds.extents.y) + 0.2f, characterController.bounds.center.z), Vector3.down);
+        Debug.DrawRay(groundRay.origin, groundRay.direction, Color.cyan, 1.0f);
 
-
-        //transform.Translate(Vector3.right * swipe * Time.deltaTime, Space.World);
+        return Physics.Raycast(groundRay, 0.2f + 0.1f);
     }
-
 }
