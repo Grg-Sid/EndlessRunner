@@ -10,11 +10,13 @@ public class PlayerMove : MonoBehaviour
 
     private Animator animator;
     private CharacterController characterController;
+    private int desiredLane = 1;
+    private float verticalVelocity;
+    
     public float jumpForce = 8.0f;
     public float gravity = 12.0f;
-    private float verticalVelocity;
     public float speed = 7.0f;
-    private int desiredLane = 1;
+    
 
 
     private void Start()
@@ -25,6 +27,8 @@ public class PlayerMove : MonoBehaviour
 
     private void Update()
     {
+        
+
         //Lane prediction
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
@@ -108,5 +112,5 @@ public class PlayerMove : MonoBehaviour
 
         return Physics.Raycast(groundRay, 0.2f + 0.1f);
     }
-
+    
 }

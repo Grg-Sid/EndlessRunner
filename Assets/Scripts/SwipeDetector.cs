@@ -16,6 +16,7 @@ public class SwipeDetector : MonoBehaviour
     private float verticalVelocity;
     public float speed = 7.0f;
     private int desiredLane = 1;
+    private bool isRunning = false;
 
     /// <summary>
     /// ////////
@@ -24,8 +25,10 @@ public class SwipeDetector : MonoBehaviour
 
     private Vector2 fingerDownPos;
     private Vector2 fingerUpPos;
-    private bool swipeUp = false;
+    public static bool isTap = false;
     private bool swipeDown = false;
+    private bool swipeUp = false;
+
 
 
     public bool detectSwipeAfterRelease = false;
@@ -51,8 +54,8 @@ public class SwipeDetector : MonoBehaviour
             {
                 fingerUpPos = touch.position;
                 fingerDownPos = touch.position;
+                isTap = true;
             }
-
             //Detects Swipe while finger is still moving on screen
             if (touch.phase == TouchPhase.Moved)
             {
@@ -70,6 +73,11 @@ public class SwipeDetector : MonoBehaviour
                 DetectSwipe();
             }
         }
+
+        //Check 
+        if (!isRunning)
+            return;
+
 
         //Changes
         //Our future location
@@ -102,9 +110,9 @@ public class SwipeDetector : MonoBehaviour
             }
             else if (swipeDown)
             {
-                animator.SetTrigger("roll");
+                StartRolling();
+                Invoke("StopRolling", 0.75f);
             }
-
         }
 
         else
@@ -119,7 +127,10 @@ public class SwipeDetector : MonoBehaviour
 
         if (fastDown)
         {
-            animator.SetTrigger("roll");
+            //animator.SetTrigger("roll");
+            StartRolling();
+            Invoke("StopRolling", 0.75f);
+
         }
 
 
@@ -183,17 +194,6 @@ public class SwipeDetector : MonoBehaviour
     {
         return Mathf.Abs(fingerDownPos.x - fingerUpPos.x);
     }
-
-    void OnSwipeUp()
-    {
-        //Do something when swiped up
-    }
-
-    void OnSwipeDown()
-    {
-        //Do something when swiped down
-    }
-
     private void MoveLane(bool goingRight)
     {
         desiredLane += (goingRight) ? 1 : -1;
@@ -206,5 +206,38 @@ public class SwipeDetector : MonoBehaviour
         Debug.DrawRay(groundRay.origin, groundRay.direction, Color.cyan, 1.0f);
 
         return Physics.Raycast(groundRay, 0.2f + 0.1f);
+    }
+
+    public void StartRunning()
+    {
+        isRunning = true;
+    }
+
+    private void StartRolling()
+    {
+        animator.SetBool("isRoll", true);
+        characterController.height /= 2;
+        characterController.center = new Vector3(characterController.center.x, 0.5f, characterController.center.z);
+    }
+
+    private void StopRolling()
+    {
+        animator.SetBool("isRoll", false);
+        characterController.height *= 2;
+        characterController.center = new Vector3(characterController.center.x, 0.8f, characterController.center.z);
+    }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if(hit.gameObject.tag == "Obstacles")
+        {
+            Die();
+        }
+    }
+
+    private void Die()
+    {
+        animator.SetTrigger("isDead");
+        isRunning = false;
     }
 }
